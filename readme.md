@@ -1,5 +1,7 @@
 # Webpack + TypeScript Setup
 
+[Dev.to](https://dev.to/glebirovich/setting-up-typescript-project-with-webpack-4ode)
+
 ## Steps
 
 1. start with an empty project `npm init`
@@ -120,3 +122,86 @@ module.exports = {
 ```
 
 5. Let's build again
+
+## Webpack development server
+
+1. Install `npm i webpack-dev-server -D`
+2. split your configurations into several parts:
+
+   > 1. **webpack.common.js** - will include configurations that are shared between multiple setups. In our case dev vs prod
+   > 2. **webpack.dev.js** will include dev-specific configs such as webpack dev server, source map, etc
+   > 3. **webpack.prod.js** is responsible for configuring production build. It usually includes some optimization settings and ensures that the output is "production-ready".
+
+3. Add this content to `webpack.common.js`
+
+```javascript
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+
+module.exports = {
+  mode: "production",
+  entry: path.resolve(__dirname, "./src/index.ts"),
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: "ts-loader",
+        exclude: /node_modules/,
+      },
+    ],
+  },
+  resolve: {
+    extensions: [".tsx", ".ts", ".js"],
+  },
+  output: {
+    filename: "bundle.[fullhash].js",
+    path: path.resolve(__dirname, "dist"),
+  },
+  plugins: [
+    new CleanWebpackPlugin(),
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, "./src/index.html"),
+    }),
+  ],
+};
+```
+
+3. Add this content to `webpack.dev.js`
+
+```javascript
+const webpackCommon = require("./webpack.common");
+const path = require("path");
+
+module.exports = {
+  ...webpackCommon,
+  devtool: "inline-source-map",
+  mode: "development",
+  devServer: {
+    contentBase: path.join(__dirname, "dist"),
+    port: 3000,
+  },
+};
+```
+
+4. Add this content to `webpack.prod.js`
+
+```javascript
+const webpackCommon = require("./webpack.common");
+
+module.exports = {
+  ...webpackCommon,
+  mode: "production",
+};
+```
+
+5. Update npm package scripts, to make sure, that a proper configuration file is used.
+
+```json
+"scripts": {
+  "start": "webpack serve --config webpack.dev.js",
+  "build": "webpack --config webpack.prod.js"
+},
+```
+
+6. Run `npm start`
